@@ -1,4 +1,8 @@
 import mongoose, { Schema } from "mongoose"
+import { availableUserRoles, userRolesEnum } from "../constants/UserRoles.constants.js"
+import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
+import crypto from "crypto"
 
 const userSchema = new Schema(
     {
@@ -6,16 +10,19 @@ const userSchema = new Schema(
             type: String,
             required: true,
             trim: true,
+            lowercase: true,
         },
         lastName: {
             type: String,
             required: true,
             trim: true,
+            lowercase: true
         },
         email: {
             type: String,
             unique: true,
             trim: true,
+            index: true,
             lowercase: true,
             required: [true, "Email is Required"],
         },
@@ -26,8 +33,8 @@ const userSchema = new Schema(
         },
         role: {
             type: String,
-            enum: ['user', 'seller'],
-            default: "User",
+            enum: availableUserRoles,
+            default: userRolesEnum.USER,
         },
         phoneNumber: {
             type: String,
@@ -42,15 +49,21 @@ const userSchema = new Schema(
         },
         storeName: {
             type: String,
+            lowercase: true,
+            trim: true,
             required: function () {
-                return this.role === 'seller';
+                return this.role === userRolesEnum.SELLER;
             }
         },
         storeAddress: {
-            type: String,
+            addressLine: String,
+            city: String,
+            state: String,
+            pincode: String,
+            country: String,
             required: function () {
-                return this.role === 'seller';
-            }
+                return this.role === userRolesEnum.SELLER;
+            },
         },
         refreshToken: {
             type: String,
@@ -74,5 +87,65 @@ const userSchema = new Schema(
     },
     { timestamps: true }
 )
+
+//Pre Hook to encrypt the password
+userSchema.pre("save", async function (next) {
+
+    if (!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+})
+
+
+//Compare password for login user
+userSchema.methods.isPasswordCorrect = async function (password) {
+
+    return await bcrypt.compare(password, this.password);
+
+}
+
+// ------------- Generate Tokens -----------------
+
+// Access Token
+userSchema.methods.generateAccessToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            lastName: this._lastName,
+            email: this.email,
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+    )
+}
+
+// Refresh Token
+userSchema.methods.generateRefreshToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    )
+}
+
+
+// Temporary Tokken
+userSchema.methods.generateTemporaryToken = function () {
+
+    const unHashedToken = crypto.randomBytes(20).toString("hex")
+
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(unHashedToken)
+        .digest("hex")
+
+    const tokenExpiry = Date.now() + (20 * 60 * 1000) // 20 Mins
+    return { unHashedToken, hashedToken, tokenExpiry }
+}
+
+
 
 export const User = mongoose.model("User", userSchema); 
