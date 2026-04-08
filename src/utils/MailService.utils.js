@@ -20,7 +20,7 @@ const sendEmail = async (options) => {
         port: process.env.MAILTRAP_SMTP_PORT,
         auth: {
             user: process.env.MAILTRAP_SMTP_USERNAME,
-            password: process.env.MAILTRAP_SMTP_PASSWORD,
+            pass: process.env.MAILTRAP_SMTP_PASSWORD,
         }
 
     });

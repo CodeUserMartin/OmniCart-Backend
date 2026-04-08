@@ -3,7 +3,7 @@ export const userRolesEnum = {
     SELLER: "seller"
 }
 
-export const availableUserRoles = Object.values(availableUserRoles);
+export const availableUserRoles = Object.values(userRolesEnum);
 
 
 

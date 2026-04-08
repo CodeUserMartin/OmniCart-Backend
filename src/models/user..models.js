@@ -56,11 +56,14 @@ const userSchema = new Schema(
             }
         },
         storeAddress: {
-            addressLine: String,
-            city: String,
-            state: String,
-            pincode: String,
-            country: String,
+            type: {
+                addressLine: String,
+                city: String,
+                state: String,
+                pincode: String,
+                country: String,
+                addressProof: String,
+            },
             required: function () {
                 return this.role === userRolesEnum.SELLER;
             },
@@ -89,12 +92,11 @@ const userSchema = new Schema(
 )
 
 //Pre Hook to encrypt the password
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
 
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password")) return;
 
     this.password = await bcrypt.hash(this.password, 10);
-    next();
 })
 
 
