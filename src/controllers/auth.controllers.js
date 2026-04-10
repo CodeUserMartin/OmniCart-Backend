@@ -38,14 +38,12 @@ const registerUser = async (req, res) => {
 
     try {
 
-        const { firstName, lastName, email, password, phoneNumber, role } = req.body;
+        const { firstName, lastName, email, password, phoneNumber } = req.body;
 
         // Check for already existing user
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
-            console.log("user found :", existingUser);
-            
             throw new ApiError(401, "Email already Registered!")
         }
 
@@ -55,6 +53,7 @@ const registerUser = async (req, res) => {
             lastName,
             email,
             password,
+            phoneNumber,
             isEmailVerified: false
         })
 
@@ -73,7 +72,7 @@ const registerUser = async (req, res) => {
             mailgenContent: emailVerificationMailService(
                 user.firstName,
                 user.lastName,
-                `${req.protocal}://${req.get("host")}/${process.env.VERIFY_EMAIL_URL}/${unHashedToken}`
+                `${req.protocol}://${req.get("host")}/${process.env.VERIFY_EMAIL_URL}/${unHashedToken}`
             )
         })
 
@@ -84,7 +83,6 @@ const registerUser = async (req, res) => {
         if (!createdUser) {
             throw new ApiError(500, "Something went wrong while Registration, Please Try again Later!")
         }
-
 
         // Send Back response to the Client
         return res
@@ -126,7 +124,7 @@ const loginUser = async (req, res) => {
             throw new ApiError(500, "Email is Required");
         }
 
-        const user = User.findOne({ email });
+        const user = await User.findOne({ email });
 
         // User exist check
         if (!user) {
@@ -134,23 +132,23 @@ const loginUser = async (req, res) => {
         }
 
         // Password check
-        const isPasswordMatching = user.isPasswordCorrect(password);
+        const isPasswordMatching = await user.isPasswordCorrect(password);
 
         if (!isPasswordMatching) {
-            throw new ApiError("402", "Password is incorrent!")
+            throw new ApiError("402", "Email or  Password is incorrent!")
         }
 
         // access and refresh Token
-        const { accessToken, refreshToken } = generateAccessTokenNRefreshToken(user._id);
+        const { accessToken, refreshToken } = await generateAccessTokenNRefreshToken(user._id);
 
-        const loggedInUser = user.findById(user._id).select(
+        const loggedInUser = await User.findById(user._id).select(
             "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
         )
 
         // secure cookies
         const options = {
             httpOnly: true,
-            secure: true
+            secure: true,
         }
 
         // send response back to client
@@ -163,8 +161,6 @@ const loginUser = async (req, res) => {
                     200,
                     {
                         user: loggedInUser,
-                        accessToken,
-                        refreshToken
                     },
                     "User Logged in Success!"
                 )
