@@ -99,7 +99,6 @@ const registerUser = async (req, res) => {
     }
 }
 
-
 const loginUser = async (req, res) => {
 
     /*
@@ -172,5 +171,244 @@ const loginUser = async (req, res) => {
     }
 }
 
+const logoutUser = async (req, res) => {
+    try {
 
-export { registerUser, loginUser }
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    refreshToken: "",
+                }
+            },
+            {
+                new: true
+            }
+        )
+
+        if (!user) {
+            throw new ApiError(401, "Permission Denied!");
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+        }
+
+        return res
+            .status(200)
+            .clearCookies("accessToken", options)
+            .clearCookies("refreshToken", options)
+            .json(new ApiResponse(200, "Logged out Successfully!"));
+
+
+    } catch (error) {
+        throw new ApiError(401, "Failed to logout!");
+    }
+}
+
+const userVerificationEmail = async (req, res) => {
+
+    try {
+
+        const { emailVerificationToken } = req.params;
+
+        if (!emailVerificationToken) {
+            throw new ApiError(400, "Verification Token is missing!");
+        }
+
+        let hashedToken = crypto
+            .createHash("sha256")
+            .update(emailVerificationToken)
+            .digest("hex")
+
+        const user = await User.findOne({
+            emailVerificationToken: hashedToken,
+            emailVerificationExpiry: { $gt: Date.now() },
+        })
+
+        if (!user) {
+            throw new ApiError(400, "Invaid or mission Token!");
+        }
+
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpiry = undefined;
+
+        user.isEmailVerified = true;
+        await user.save({ validateBeforeSave: false });
+
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    {
+                        isEmailVerified: true
+                    },
+                    "Email is Verified!"
+                )
+            )
+
+    } catch (error) {
+        throw error;
+    }
+}
+
+const reSentUserVerificationEmail = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.user?._id);
+
+        if (!user) {
+            throw new ApiError(404, "User does not exists!");
+        }
+
+        if (user.isEmailVerified) {
+            throw new ApiError(409, "Email is already Verified!");
+        }
+
+        const { unHashedToken, hashedToken, tokenExpiry } =
+            user.generateTemporaryToken();
+
+        user.emailVerificationToken = hashedToken;
+        user.emailVerificationExpiry = tokenExpiry;
+
+        await user.save({ validateBeforeSave: false })
+
+        await sendEmail({
+            email: user?.email,
+            subject: "Please Verify your Email",
+            mailgenContent: emailVerificationMailService(
+                user.firstName,
+                user.lastName,
+                `${req.protocol}://${req.get("host")}/${VERIFY_EMAIL_URL}/${unHashedToken}`,
+            )
+        });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, {}, "Mail is send to your Email Id"));
+
+    } catch (error) {
+        throw error;
+    }
+
+}
+
+const refreshAccessToken = async (req, res) => {
+
+    const incomingRefreshToken =
+        req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Unauthorized Request!");
+    }
+
+    try {
+
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+
+        const user = await User.findById(decodedToken?._id);
+
+        if (!user) {
+            throw new ApiError(401, "Invalid Token!!");
+        }
+
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "Token Expired!!");
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+        }
+
+        const { accessToken, refreshAccessToken: newRefreshToken }
+            = await generateAccessTokenNRefreshToken(user._id)
+
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    "Token refresh Done!!"
+                ),
+            );
+
+    } catch (error) {
+        throw error;
+    }
+
+}
+
+const currentLoginUser = async (req, res) => {
+
+    try {
+
+        const userId = req.user?._id;
+
+
+        if (!userId) {
+            throw new ApiError(401, "Failed to find User Details!")
+        }
+
+        const user = await User.findById(userId)
+            .select(
+                "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+            );
+
+        if (!user) {
+            throw new ApiError(404, "Failed to fetch user Details!");
+        }
+
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    { user },
+                    "Current User Details Fetching Succefully!"
+                )
+            )
+
+
+    } catch (error) {
+        throw error;
+    }
+
+}
+
+const changePassword = async (req, res) => {
+
+}
+
+const forgetPassword = async (req, res) => {
+
+}
+
+const resetPassword = async (req, res) => {
+
+}
+
+
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    currentLoginUser,
+    userVerificationEmail,
+    reSentUserVerificationEmail,
+    refreshAccessToken
+}
