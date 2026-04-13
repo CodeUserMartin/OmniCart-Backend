@@ -37,7 +37,6 @@ const userRegistrationValidation = () => {
     ]
 }
 
-
 const userLoginValidation = () => {
     return [
 
@@ -56,8 +55,45 @@ const userLoginValidation = () => {
     ]
 }
 
+const userChangePasswordValidation = () => {
+    return [
+
+        body("oldPassword")
+            .notEmpty()
+            .withMessage("Old password is required!"),
+
+        body("newPassword")
+            .notEmpty()
+            .withMessage("New Password is Required!"),
+    ]
+}
+
+
+const userforgetPasswordValidator = () => {
+    return [
+        body("email")
+            .notEmpty()
+            .withMessage("Email is Required!")
+            .trim()
+            .isEmail()
+            .withMessage("Invaid Email!"),
+    ]
+}
+
+const userResetForgetPasswordValidator = () => {
+    return [
+
+        body("newPassword")
+            .notEmpty()
+            .withMessage("New Password is Required!"),
+    ]
+}
 
 export {
     userRegistrationValidation,
     userLoginValidation,
+    userChangePasswordValidation,
+    userforgetPasswordValidator,
+    userResetForgetPasswordValidator,
+
 }
