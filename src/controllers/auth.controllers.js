@@ -1,7 +1,8 @@
 import { ApiResponse } from "../utils/ApiResponse.utils.js"
 import { ApiError } from "../utils/ApiError.utils.js"
 import { User } from "../models/user..models.js"
-import { emailVerificationMailService, sendEmail } from "../utils/MailService.utils.js"
+import { emailVerificationMailService, forgotPasswordEmailService, sendEmail } from "../utils/MailService.utils.js"
+import crypto from "crypto"
 
 const generateAccessTokenNRefreshToken = async (userId) => {
 
@@ -32,7 +33,6 @@ const registerUser = async (req, res) => {
         - create user and add db entry
         - generate AccessToken and Temporary tokens
         - send verification mail to the user
-        - send back AccessToken via cookies to the user browser
         - send response back to the client
     */
 
@@ -182,7 +182,7 @@ const logoutUser = async (req, res) => {
                 }
             },
             {
-                new: true
+                returnDocument: 'after'
             }
         )
 
@@ -197,13 +197,15 @@ const logoutUser = async (req, res) => {
 
         return res
             .status(200)
-            .clearCookies("accessToken", options)
-            .clearCookies("refreshToken", options)
+            .clearCookie("accessToken", options)
+            .clearCookie("refreshToken", options)
             .json(new ApiResponse(200, "Logged out Successfully!"));
 
 
     } catch (error) {
+        console.error(error);
         throw new ApiError(401, "Failed to logout!");
+
     }
 }
 
@@ -283,7 +285,7 @@ const reSentUserVerificationEmail = async (req, res) => {
             mailgenContent: emailVerificationMailService(
                 user.firstName,
                 user.lastName,
-                `${req.protocol}://${req.get("host")}/${VERIFY_EMAIL_URL}/${unHashedToken}`,
+                `${req.protocol}://${req.get("host")}/${process.env.VERIFY_EMAIL_URL}/${unHashedToken}`,
             )
         });
 
@@ -389,16 +391,111 @@ const currentLoginUser = async (req, res) => {
 
 }
 
-const changePassword = async (req, res) => {
+const userChangeCurrentPassword = async (req, res) => {
+
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        throw new ApiError(401, "User not found!");
+    }
+
+    const isMatch = await user.isPasswordCorrect(oldPassword);
+
+    if (!isMatch) {
+        throw new ApiError(401, "Invaid Password");
+    }
+
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false })
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200,
+                {},
+                "Password changed Successfully!"
+            )
+        );
 
 }
 
-const forgetPassword = async (req, res) => {
+const forgetPasswordRequest = async (req, res) => {
 
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        throw new ApiError(401, "User does not exists");
+    }
+
+    const { unHashedToken, hashedToken, tokenExpiry }
+        = user.generateTemporaryToken();
+
+
+    user.forgetPasswordToken = hashedToken;
+    user.forgetPasswordExpiry = tokenExpiry;
+
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail({
+        email: user?.email,
+        subject: "Password reset Request",
+        mailgenContent: forgotPasswordEmailService(
+            user.firstName,
+            user.lastName,
+            `${req.protocol}://${req.get("host")}/${process.env.FORGOT_PASS_URL}/${unHashedToken}`
+        )
+    });
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Password resent mail is send to your Email!"
+            )
+        )
 }
 
-const resetPassword = async (req, res) => {
+const resetForgetPassword = async (req, res) => {
 
+    const { resetToken } = req.params;
+    const { newPassword } = req.body;
+
+    let hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex")
+
+    const user = await User.findOne({
+        forgetPasswordToken: hashedToken,
+        forgetPasswordExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) {
+        throw new ApiError("Invalid or Token is Expired!!");
+    }
+
+    user.forgetPasswordToken = undefined;
+    user.forgetPasswordExpiry = undefined;
+
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Password Reset Succesfully!!"
+            )
+        )
 }
 
 
@@ -410,5 +507,8 @@ export {
     currentLoginUser,
     userVerificationEmail,
     reSentUserVerificationEmail,
-    refreshAccessToken
+    refreshAccessToken,
+    userChangeCurrentPassword,
+    forgetPasswordRequest,
+    resetForgetPassword
 }
