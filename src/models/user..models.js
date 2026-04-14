@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose"
-import { availableUserRoles, userRolesEnum } from "../constants/UserRoles.constants.js"
+import { availableUserRoles, userRolesEnum } from "../constants/userRoles.constants.js"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
@@ -49,7 +49,6 @@ const userSchema = new Schema(
         },
         storeName: {
             type: String,
-            lowercase: true,
             trim: true,
             required: function () {
                 return this.role === userRolesEnum.SELLER;
@@ -67,6 +66,10 @@ const userSchema = new Schema(
             required: function () {
                 return this.role === userRolesEnum.SELLER;
             },
+        },
+        isSellerVerified: {
+            type: Boolean,
+            default: false,
         },
         refreshToken: {
             type: String,
