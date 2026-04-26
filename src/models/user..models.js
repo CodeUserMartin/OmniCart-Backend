@@ -47,29 +47,29 @@ const userSchema = new Schema(
             pincode: String,
             country: String,
         },
-        storeName: {
-            type: String,
-            trim: true,
-            required: function () {
-                return this.role === userRolesEnum.SELLER;
-            }
-        },
-        storeAddress: {
+        sellerInfo: {
             type: {
-                addressLine: String,
-                city: String,
-                state: String,
-                pincode: String,
-                country: String,
-                addressProof: String,
+                storeName: {
+                    type: String,
+                    trim: true,
+                    required: function () {
+                        return this.ownerDocument().role === userRolesEnum.SELLER;
+                    }
+                },
+                storeAddress: {
+                    addressLine: String,
+                    city: String,
+                    state: String,
+                    pincode: String,
+                    country: String,
+                    addressProof: String,
+                },
+                isVerified: {
+                    type: Boolean,
+                    default: false,
+                },
             },
-            required: function () {
-                return this.role === userRolesEnum.SELLER;
-            },
-        },
-        isSellerVerified: {
-            type: Boolean,
-            default: false,
+            default: undefined
         },
         refreshToken: {
             type: String,
@@ -116,7 +116,7 @@ userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
-            lastName: this._lastName,
+            lastName: this.lastName,
             email: this.email,
         },
         process.env.ACCESS_TOKEN_SECRET,
