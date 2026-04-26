@@ -105,10 +105,15 @@ const removeProduct = async (req, res) => {
 
     const { productId } = req.params;
 
-    const product = await Product.findOneAndDelete({
-        _id: productId,
-        addedBy: req.user?._id,
-    }
+    const product = await Product.findOneAndUpdate(
+        {
+            _id: productId,
+            addedBy: req.user?._id,
+        },
+        {
+            $set: { isActive: false }
+        },
+        { returnDocument: 'after' }
     );
 
     if (!product) {
@@ -127,31 +132,64 @@ const removeProduct = async (req, res) => {
 
 }
 
+// Show all Products (with Filter)
 const getProducts = async (req, res) => {
+
+    const { search, category } = req.query;
+
+    if (category && !availableProductCategory.includes(category)) {
+        throw new ApiError(401, "Product Category not found!");
+    }
+
+    let filter = { isActive: true };
+
+    if (category) {
+        filter.category = category;
+    }
+
+    if (search) {
+        filter.name = { $regex: search, $options: "i" };
+    }
+
+    const products = await Product.find(filter);
+
+
+    if (products.length === 0) {
+        throw new ApiError(404, "No Product found!");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { products },
+                "Product fetched Successfully!"
+            )
+        )
 
 }
 
 const getProductById = async (req, res) => {
 
+    const { productId } = req.params;
+
+    const product = await Product.findById({ productId });
+
+    if (!product) {
+        throw new ApiError(401, "Product not found!");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { product },
+                "Product Fetched Successfully!"
+            )
+        )
 }
-
-const currentProductInfo = async (req, res) => {
-
-}
-
-const getProductByCategory = async (req, res) => {
-
-}
-
-const getCategoryProductById = async (req, res) => {
-
-}
-
-
-
-
-
-
 
 export {
     addProduct,
@@ -159,8 +197,5 @@ export {
     removeProduct,
     getProducts,
     getProductById,
-    currentProductInfo,
-    getProductByCategory,
-    getCategoryProductById
 }
 
