@@ -52,9 +52,7 @@ const userSchema = new Schema(
                 storeName: {
                     type: String,
                     trim: true,
-                    required: function () {
-                        return this.ownerDocument().role === userRolesEnum.SELLER;
-                    }
+                    required: true,
                 },
                 storeAddress: {
                     addressLine: String,
