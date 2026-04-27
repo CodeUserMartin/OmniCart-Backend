@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.utils.js"
 import { User } from "../models/user..models.js"
 import { emailVerificationMailService, forgotPasswordEmailService, sendEmail } from "../utils/MailService.utils.js"
 import crypto from "crypto"
+import { userRolesEnum } from "../constants/userRoles.constants.js"
 
 const generateAccessTokenNRefreshToken = async (userId) => {
 
@@ -38,7 +39,7 @@ const registerUser = async (req, res) => {
 
     try {
 
-        const { firstName, lastName, email, password, phoneNumber } = req.body;
+        const { firstName, lastName, email, password, phoneNumber, sellerInfo } = req.body;
 
         // Check for already existing user
         const existingUser = await User.findOne({ email });
@@ -47,14 +48,22 @@ const registerUser = async (req, res) => {
             throw new ApiError(401, "Email already Registered!")
         }
 
+        let role = userRolesEnum.USER;
+
+        if (sellerInfo) {
+            role = userRolesEnum.SELLER;
+        }
+
         // Create User document
         const user = await User.create({
             firstName,
             lastName,
             email,
             password,
+            role,
             phoneNumber,
-            isEmailVerified: false
+            isEmailVerified: false,
+            sellerInfo: sellerInfo || undefined,
         })
 
         // Generating Verificaion Tokens
