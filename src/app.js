@@ -25,9 +25,14 @@ app.use(cors(
 
 // Routes
 
-import authRouter from "./routes/auth.routes.js"
+import authRoutes from "./routes/auth.routes.js"
+import productRoutes from "./routes/product.routes.js"
+import cartRoutes from "./routes/cart.routes.js"
 
-app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/product", productRoutes);
+app.use("/api/v1/cart", cartRoutes);
+
 
 app.get("/", (req, res) => {
     res.send("Welcome to OmniCart!!");
