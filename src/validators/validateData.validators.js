@@ -1,6 +1,7 @@
 import { body } from "express-validator"
 
 
+// Auth Validators
 const userRegistrationValidation = () => {
     return [
         body("email")
@@ -89,11 +90,78 @@ const userResetForgetPasswordValidator = () => {
     ]
 }
 
+
+// Product Validators
+const productInsertValidator = () => {
+    return [
+
+        body("name")
+            .notEmpty()
+            .withMessage("Product name is required!"),
+
+        body("desc")
+            .notEmpty()
+            .withMessage("Product Description cannot be empty!"),
+
+        body("price")
+            .notEmpty()
+            .withMessage("Product Price cannot be empty!")
+            .isFloat({ gt: 0, max: 10000 })
+            .withMessage("Price cannot exceed 10000"),
+
+        body("stock")
+            .notEmpty()
+            .withMessage("Product stock cannot be empty!")
+            .isInt({ gt: 0, max: 5000 })
+            .withMessage("Stock max capacity is 1000"),
+
+        body("category")
+            .notEmpty()
+            .withMessage("Product category cannot be empty!"),
+
+    ]
+}
+
+const productUpdateValidator = () => {
+    return [
+
+        body("name")
+            .notEmpty()
+            .withMessage("Product name is required"),
+
+        body("desc")
+            .notEmpty()
+            .withMessage("Product description is required"),
+
+        body("stock")
+            .notEmpty()
+            .withMessage("Product Quantity is requried")
+            .isInt({ gt: 0, max: 5000 })
+            .withMessage("Stock max capacity is 5000"),
+
+    ]
+}
+
+
+// Cart Validators
+const cartUpdateValidator = () => {
+    return [
+
+        body("quantity")
+            .notEmpty()
+            .withMessage("Quantity is required!")
+            .isInt({ gt: 1 })
+    ]
+}
+
 export {
     userRegistrationValidation,
     userLoginValidation,
     userChangePasswordValidation,
     userforgetPasswordValidator,
     userResetForgetPasswordValidator,
+    productInsertValidator,
+    productUpdateValidator,
+    cartUpdateValidator
 
 }
