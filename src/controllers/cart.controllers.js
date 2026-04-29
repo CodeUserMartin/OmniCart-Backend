@@ -3,9 +3,69 @@ import { Cart } from "../models/cart.models.js"
 import { ApiError } from "../utils/ApiError.utils.js";
 import { User } from "../models/user..models.js";
 import { ApiResponse } from "../utils/ApiResponse.utils.js";
+import { availableProductCategory } from "../constants/productCategory.constants.js";
+import { populate } from "dotenv";
 
 
 const showCart = async (req, res) => {
+
+    // Category or search based cart
+    const { search, category } = req.query;
+
+
+    if (category && !availableProductCategory.includes(category)) {
+        throw new ApiError(400, "Invalid or not found Category!")
+    }
+
+    // Find user Cart
+    const cart = await Cart.findOne({ userId: req.user._id })
+        .populate("items.productId")
+
+    if (!cart) {
+        throw new ApiError(404, "Cart not found!")
+    }
+
+    let items = cart.items;
+
+    // Filter by category
+    if (category) {
+        items = items.filter(
+            item => item.productId.category === category
+        )
+    }
+
+    // Filter by category
+    if (search) {
+        items = items.filter(
+            item => item.productId.name
+                .toLowerCase()
+                .includes(search.toLowerCase())
+        );
+    }
+
+
+    // Formatted Cart Data
+    const finalCartItems = items.map(item => ({
+
+        productId: item.productId._id,
+        productImg: item.productId.images,
+        productName: item.productId.name,
+        description: item.productId.description,
+        price: item.productId.price,
+        quantity: item.quantity,
+
+    }));
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { finalCartItems },
+                "Cart fetched succesfully!"
+            )
+        )
 
 }
 
