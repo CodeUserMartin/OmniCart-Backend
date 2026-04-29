@@ -60,8 +60,9 @@ const updateProduct = async (req, res) => {
     try {
 
         const { productId } = req.params;
-        const { name, desc } = req.body;
+        const { name, desc, stock } = req.body;
 
+        const stk = Number(stock);
         const updateFields = {};
 
         if (Object.keys(updateFields).length === 0) {
@@ -70,6 +71,13 @@ const updateProduct = async (req, res) => {
 
         if (name) updateFields.name = name;
         if (desc) updateFields.description = desc;
+
+        if (stk && stk > 0) {
+            updateFields.stoke = stk;
+        } else {
+            throw new ApiError("Product Quantity Invalid");
+        }
+
 
         const product = await Product.findOneAndUpdate({
             _id: productId,
