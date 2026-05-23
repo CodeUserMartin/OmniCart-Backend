@@ -8,7 +8,6 @@ import { cloudinaryUploader } from "../utils/cloudinary.utils.js"
 const addProduct = async (req, res) => {
 
     try {
-
         const { name, desc, price, stock, category } = req.body;
 
         if (!availableProductCategory.includes(category)) {

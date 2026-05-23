@@ -1,5 +1,4 @@
 import { Router } from "express"
-import { verify } from "jsonwebtoken"
 import { verifyJwt } from "../middlewares/auth.middleware.js"
 import { addItemToCart, clearCart, deleteItemFromCart, showCart, updateItemFromCart } from "../controllers/cart.controllers.js"
 import { cartUpdateValidator } from "../validators/validateData.validators.js"
