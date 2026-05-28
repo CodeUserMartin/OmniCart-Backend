@@ -3,7 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { Order } from "../models/order.models.js";
 import { User } from "../models/user..models.js";
 import { Product } from "../models/product.models.js";
-import { availableOrderStatus } from "../utils/constants.utils.js";
+import { availableOrderStatus, orderStatusEnum} from "../constants/orderStatus.constants.js";
 
 
 // Getting all the orders for a specific user (All Order, based on Category)
@@ -327,7 +327,6 @@ const cancelOrder = async (req, res) => {
             )
         )
 }
-
 
 
 export {

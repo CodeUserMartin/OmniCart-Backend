@@ -1,4 +1,4 @@
-const orderStatusEnum = {
+export const orderStatusEnum = {
     PENDING: "pending",
     CONFIRMED: "confirmed",
     SHIPPED: "shipped",
