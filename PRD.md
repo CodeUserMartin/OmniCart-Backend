@@ -116,17 +116,11 @@ A unified platform that allows users to browse and purchase products across mult
 ---
 
 - `POST /` - Product Add
-- `GET /` - Shows all products List
+- `GET /` - Shows all products (with Filter) `Eg: /products?category=electronics` 
 - `PUT /:productId` - Product Update
+- `GET /:productId` - Get Product by Id
 - `DELETE /:productId` - Product Delete
-- `GET /current-product/:id` - Current Product Info
-- `GET /recently-view` - Shows Recently View Products
-
----
-- `GET /?section=` - Perticular Section
-- `Get /?search=`  - Searches the Product
-- `Get /section=&search=`  - Searches the Product in particular Section
-
+- `GET /recent` - Shows Recently View Products
 
 ---
 
@@ -139,7 +133,7 @@ A unified platform that allows users to browse and purchase products across mult
 - `GET /` - Shows all the products inside the Cart
 - `POST /`  - Adds Product to the Cart
 - `PUT /:productId` - Update the product in the cart
-- `DELETE /:productId`  - Removes the product form the Cart
+- `DELETE /:productId`  - Removes the specific product from the Cart
 - `DELETE /`  - Removes all the Items from the cart 
 
 ---
@@ -197,6 +191,7 @@ Pending | Confirmed | Shipped | Delivered | Cancelled |
 *Seller Product Management* | 
 *(Connected to /products API)*
 
+- `POST /become-seller`  - User --> Seller Role Assignment and validation of Seller.
 - `GET /product/sellers/my-products` - Seller's Product
 - `POST /products` - Add Products
 - `PUT /products/:id` - Update Products
@@ -214,7 +209,6 @@ Pending | Confirmed | Shipped | Delivered | Cancelled |
 - `PATCH /:orderID/status` - Update Order Status
 
 ---
-
 
 #### 4.2 Data Models
 
