@@ -3,7 +3,8 @@ import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { Order } from "../models/order.models.js";
 import { User } from "../models/user..models.js";
 import { Product } from "../models/product.models.js";
-import { availableOrderStatus, orderStatusEnum} from "../constants/orderStatus.constants.js";
+import { Notification } from "../models/notification.models.js";
+import { availableOrderStatus, orderStatusEnum } from "../constants/orderStatus.constants.js";
 
 
 // Getting all the orders for a specific user (All Order, based on Category)
@@ -131,6 +132,16 @@ const checkoutCart = async (req, res) => {
         }
     )
 
+    // Create a notification for the user
+    await Notification.create(
+        {
+            userId,
+            title: "Order Placed",
+            message: `Your order for ${product.name} has been placed successfully!`,
+            referenceId: order._id,
+        }
+    );
+
     // Clear the cart after placing the order
     cart.items = [];
     await cart.save();
@@ -193,6 +204,16 @@ const buyProduct = async (req, res) => {
                 }
             ],
             totalAmount,
+        }
+    )
+
+    // Create a notification for the user
+    await Notification.create(
+        {
+            userId,
+            title: "Order Placed",
+            message: `Your order for ${product.name} has been placed successfully!`,
+            referenceId: order._id,
         }
     )
 
@@ -316,6 +337,16 @@ const cancelOrder = async (req, res) => {
             await product.save();
         }
     }
+
+    // Create a notification for the user
+    await Notification.create(
+        {
+            userId,
+            title: "Order Cancelled",
+            message: `Your order for ${product.name} has been cancelled.`,
+            referenceId: order._id,
+        }
+    );
 
     return res
         .status(200)
