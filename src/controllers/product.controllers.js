@@ -64,10 +64,6 @@ const updateProduct = async (req, res) => {
         const stk = Number(stock);
         const updateFields = {};
 
-        if (Object.keys(updateFields).length === 0) {
-            throw new ApiError(400, "No fields provided for update");
-        }
-
         if (name) updateFields.name = name;
         if (desc) updateFields.description = desc;
 
@@ -77,6 +73,9 @@ const updateProduct = async (req, res) => {
             throw new ApiError("Product Quantity Invalid");
         }
 
+        if (Object.keys(updateFields).length === 0) {
+            throw new ApiError(400, "No fields provided for update");
+        }
 
         const product = await Product.findOneAndUpdate({
             _id: productId,
@@ -181,7 +180,9 @@ const getProductById = async (req, res) => {
 
     const { productId } = req.params;
 
-    const product = await Product.findById({ productId });
+    console.log("Product ID:", productId);
+
+    const product = await Product.findById(productId);
 
     if (!product) {
         throw new ApiError(401, "Product not found!");

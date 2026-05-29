@@ -27,6 +27,10 @@ const showCart = async (req, res) => {
 
     let items = cart.items;
 
+    if (!items.length) {
+        throw new ApiError(404, "Cart is empty!")
+    }
+
     // Filter by category
     if (category) {
         items = items.filter(
@@ -132,12 +136,15 @@ const updateItemFromCart = async (req, res) => {
     const { quantity } = req.body;
     const qty = Number(quantity);
 
-    if (!productId || qty || qty < 1) {
+    console.log("Product ID:", productId);
+    console.log("Quantity:", quantity);
+
+    if (isNaN(qty) || qty < 1) {
         throw new ApiError(400, "Invalid product or quantity!");
     }
 
     // Finding the user Cart
-    const cart = await Cart.findById({ userId: req.user._id });
+    const cart = await Cart.findOne({ userId: req.user._id });
 
     if (!cart) {
         throw new ApiError(404, "Cart not Found!")
@@ -152,7 +159,7 @@ const updateItemFromCart = async (req, res) => {
         throw new ApiError(404, "Product invalid or not found!");
     }
 
-    // Update Quantuty count
+    // Update Quantity count
     item.quantity += qty
 
     await cart.save();
@@ -162,7 +169,7 @@ const updateItemFromCart = async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                { product },
+                { item },
                 "Cart updated Successfully!"
             )
         )
