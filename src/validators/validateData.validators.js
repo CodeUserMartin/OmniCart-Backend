@@ -29,12 +29,12 @@ const userRegistrationValidation = () => {
             .notEmpty()
             .withMessage("Last Name is Required!"),
 
-        body("phoneNumber")
-            .trim()
-            .notEmpty()
-            .withMessage("Phone Number is Required!")
-            .isMobilePhone("en-IN")
-            .withMessage("Invalid Number")
+        // body("phoneNumber")
+        //     .trim()
+        //     .notEmpty()
+        //     .withMessage("Phone Number is Required!")
+        //     .isMobilePhone("en-IN")
+        //     .withMessage("Invalid Number")
     ]
 }
 
