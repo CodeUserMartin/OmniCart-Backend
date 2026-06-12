@@ -3,6 +3,7 @@ import { availableUserRoles, userRolesEnum } from "../constants/userRoles.consta
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
+import { ContextHandlerImpl } from "express-validator/lib/chain/context-handler-impl.js"
 
 const userSchema = new Schema(
     {
@@ -42,6 +43,7 @@ const userSchema = new Schema(
         },
         address: {
             addressLine: String,
+            contactNumber: String,
             city: String,
             state: String,
             pincode: String,

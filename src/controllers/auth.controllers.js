@@ -5,6 +5,8 @@ import { emailVerificationMailService, forgotPasswordEmailService, sendEmail } f
 import crypto from "crypto"
 import { userRolesEnum } from "../constants/userRoles.constants.js"
 
+import { cloudinaryUploader } from "../utils/cloudinary.utils.js"
+
 const generateAccessTokenNRefreshToken = async (userId) => {
 
     try {
@@ -39,7 +41,7 @@ const registerUser = async (req, res) => {
 
     try {
 
-        const { firstName, lastName, email, password, phoneNumber, sellerInfo } = req.body;
+        const { firstName, lastName, email, password } = req.body;
 
         // Check for already existing user
         const existingUser = await User.findOne({ email });
@@ -50,10 +52,6 @@ const registerUser = async (req, res) => {
 
         let role = userRolesEnum.USER;
 
-        if (sellerInfo) {
-            role = userRolesEnum.SELLER;
-        }
-
         // Create User document
         const user = await User.create({
             firstName,
@@ -61,9 +59,8 @@ const registerUser = async (req, res) => {
             email,
             password,
             role,
-            phoneNumber,
+            // phoneNumber,
             isEmailVerified: false,
-            sellerInfo: sellerInfo || undefined,
         })
 
         // Generating Verificaion Tokens
@@ -179,6 +176,124 @@ const loginUser = async (req, res) => {
         throw new ApiError(500, "Login Failed")
     }
 }
+
+
+const becomeSeller = async (req, res) => {
+
+    const userId = req.user._id;    
+
+    const {
+        storeName,
+        contactNumber,
+        addressLine,
+        city,
+        state,
+        country,
+        pinCode,
+    } = req.body;
+
+    // console.log(req.body)
+
+    // Validate Required Fields
+    if (
+        !storeName ||
+        !contactNumber ||
+        !addressLine ||
+        !city ||
+        !state ||
+        !country ||
+        !pinCode
+    ) {
+        throw new ApiError(
+            400,
+            "All seller details are required!"
+        );
+    }
+
+    // Validate Address Proof Upload
+    const addressProofLocalPath = req.file?.path;
+
+
+    if (!addressProofLocalPath) {
+        throw new ApiError(
+            400,
+            "Address proof is required!"
+        );
+    }
+
+
+    // Upload Address Proof
+    const uploadedAddressProof =
+        await cloudinaryUploader(
+            addressProofLocalPath
+        );
+
+
+    if (!uploadedAddressProof) {
+        throw new ApiError(
+            500,
+            "Failed to upload address proof!"
+        );
+    }
+
+    // Find User
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new ApiError(
+            404,
+            "User not found!"
+        );
+    }
+
+    // Check if already seller
+    if (
+        user.role === userRolesEnum.SELLER
+    ) {
+        throw new ApiError(
+            400,
+            "User is already a seller!"
+        );
+    }
+
+    // Update Seller Information
+    user.role = userRolesEnum.SELLER;
+
+    user.sellerInfo = {
+        storeName,
+
+        storeAddress: {
+            addressLine,
+            contactNumber,
+            city,
+            state,
+            country,
+            pinCode,
+            addressProof:
+                uploadedAddressProof.secure_url,
+        },
+    };
+
+
+    await user.save();
+
+
+    const responseUser = await User.findById(user._id).select(
+        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+    )
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { user: responseUser },
+                "Seller registration successful!"
+            )
+        );
+};
+
 
 const logoutUser = async (req, res) => {
     try {
@@ -512,6 +627,7 @@ const resetForgetPassword = async (req, res) => {
 export {
     registerUser,
     loginUser,
+    becomeSeller,
     logoutUser,
     currentLoginUser,
     userVerificationEmail,
