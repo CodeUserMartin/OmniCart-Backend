@@ -1,3 +1,4 @@
+import { log } from "console";
 import { availableProductCategory } from "../constants/productCategory.constants.js";
 import { Product } from "../models/product.models.js";
 import { ApiError } from "../utils/ApiError.utils.js"
@@ -9,6 +10,9 @@ const addProduct = async (req, res) => {
 
     try {
         const { name, desc, price, stock, category } = req.body;
+
+        console.log(req.body);
+        
 
         if (!availableProductCategory.includes(category)) {
             throw new ApiError(400, "Invalid Product Category!");
@@ -165,7 +169,7 @@ const getProducts = async (req, res) => {
     }
 
     return res
-        .status(200)
+        .status(201)
         .json(
             new ApiResponse(
                 200,
@@ -199,11 +203,28 @@ const getProductById = async (req, res) => {
         )
 }
 
+// Seller's Product
+const getMyProducts = async (req, res) => {
+
+    const products = await Product.find({
+        addedBy: req.user._id
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { products },
+            "Products fetched successfully!"
+        )
+    );
+};
+
 export {
     addProduct,
     updateProduct,
     removeProduct,
     getProducts,
     getProductById,
+    getMyProducts
 }
 
