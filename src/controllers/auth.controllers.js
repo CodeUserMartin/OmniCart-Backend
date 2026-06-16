@@ -180,7 +180,7 @@ const loginUser = async (req, res) => {
 
 const becomeSeller = async (req, res) => {
 
-    const userId = req.user._id;    
+    const userId = req.user._id;
 
     const {
         storeName,
@@ -292,6 +292,14 @@ const becomeSeller = async (req, res) => {
                 "Seller registration successful!"
             )
         );
+};
+
+const getUserAddresses = async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    return res.status(200).json(
+        new ApiResponse(200, user.addresses, "Addresses fetched successfully")
+    );
 };
 
 
@@ -628,6 +636,7 @@ export {
     registerUser,
     loginUser,
     becomeSeller,
+    getUserAddresses,
     logoutUser,
     currentLoginUser,
     userVerificationEmail,
@@ -635,5 +644,6 @@ export {
     refreshAccessToken,
     userChangeCurrentPassword,
     forgetPasswordRequest,
-    resetForgetPassword
+    resetForgetPassword,
+    
 }
