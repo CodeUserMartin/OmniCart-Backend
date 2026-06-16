@@ -5,6 +5,7 @@ import { User } from "../models/user..models.js";
 import { Product } from "../models/product.models.js";
 import { Notification } from "../models/notification.models.js";
 import { availableOrderStatus, orderStatusEnum } from "../constants/orderStatus.constants.js";
+import { Cart } from "../models/cart.models.js";
 
 
 // Getting all the orders for a specific user (All Order, based on Category)
@@ -34,14 +35,14 @@ const getOrders = async (req, res) => {
     }
 
     // Checking if the user has any orders
-    const orders = await Order.findOne({ userId: user._id })
-        .populate("items.productId")
+    const orders = await Order.find({userId: user._id})
+    .populate("items.productId");
 
     if (!orders) {
         throw new ApiError(404, "Orders not found!");
     }
 
-    let items = orders.items;
+   let items = orders.flatMap(order => order.items);
 
     if (category) {
         items = items.filter(
@@ -54,7 +55,10 @@ const getOrders = async (req, res) => {
         productId: item.productId._id,
         img: item.productId.images,
         name: item.productId.name,
+        description: item.productId.description,
         price: item.productId.price,
+        quantity: item.quantity,
+        status: item.orderStatus,
         category: item.productId.category,
 
     }))
@@ -83,7 +87,30 @@ const checkoutCart = async (req, res) => {
     8. Return the order details in the response
     */
 
+    const { shippingAddress, paymentMethod } = req.body;
+
+    if (!shippingAddress) {
+        throw new ApiError(400, "Shipping address is required!");
+    }
+
+    if (!paymentMethod) {
+        throw new ApiError(400, "Payment method is required!");
+    }
+
     const userId = req.user._id;
+
+    const user = await User.findById(userId);
+
+    // check if address already exists (avoid duplicates)
+    const addressExists = user.addresses.some((addr) =>
+        addr.addressLine === shippingAddress.addressLine &&
+        addr.pincode === shippingAddress.pincode
+    );
+
+    if (!addressExists) {
+        user.addresses.push(shippingAddress);
+        await user.save();
+    }
 
     const orderItems = [];
     let totalAmount = 0;
@@ -128,6 +155,8 @@ const checkoutCart = async (req, res) => {
         {
             userId,
             items: orderItems,
+            shippingAddress,
+            paymentMethod,
             totalAmount,
         }
     )
@@ -137,7 +166,7 @@ const checkoutCart = async (req, res) => {
         {
             userId,
             title: "Order Placed",
-            message: `Your order for ${product.name} has been placed successfully!`,
+            message: `Your order for ${order.items.length} items has been placed successfully!`,
             referenceId: order._id,
         }
     );

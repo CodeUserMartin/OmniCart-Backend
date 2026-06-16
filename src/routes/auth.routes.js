@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { currentLoginUser, forgetPasswordRequest, loginUser, becomeSeller, logoutUser, refreshAccessToken, registerUser, resetForgetPassword, userVerificationEmail, reSentUserVerificationEmail, userChangeCurrentPassword } from "../controllers/auth.controllers.js";
+import { currentLoginUser, forgetPasswordRequest, loginUser, becomeSeller, getUserAddresses, logoutUser, refreshAccessToken, registerUser, resetForgetPassword, userVerificationEmail, reSentUserVerificationEmail, userChangeCurrentPassword } from "../controllers/auth.controllers.js";
 import { validateErrors } from "../middlewares/validator.middleware.js";
 import { userRegistrationValidation, userLoginValidation, userforgetPasswordValidator, userResetForgetPasswordValidator, userChangePasswordValidation } from "../validators/validateData.validators.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js"
@@ -10,6 +10,7 @@ const router = Router();
 router.route("/register").post(userRegistrationValidation(), validateErrors, registerUser);
 router.route("/login").post(userLoginValidation(), validateErrors, loginUser);
 router.route("/become-seller").post(verifyJwt, upload.single("addressProof"), becomeSeller);
+router.route("/address").get(verifyJwt, getUserAddresses);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/verify-email/:emailVerificationToken").get(userVerificationEmail);
 router.route("/forget-password").post(userforgetPasswordValidator(), validateErrors, forgetPasswordRequest);
