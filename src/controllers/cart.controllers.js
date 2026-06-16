@@ -79,7 +79,7 @@ const addItemToCart = async (req, res) => {
     let userId = req.user._id;
 
     // Recieving Data
-    const { productId, quantity } = req.body;
+    const { productId, quantity = 1 } = req.body;
     const qty = Number(quantity);
 
 
@@ -136,8 +136,8 @@ const updateItemFromCart = async (req, res) => {
     const { quantity } = req.body;
     const qty = Number(quantity);
 
-    console.log("Product ID:", productId);
-    console.log("Quantity:", quantity);
+    // console.log("Product ID:", productId);
+    // console.log("Quantity:", quantity);
 
     if (isNaN(qty) || qty < 1) {
         throw new ApiError(400, "Invalid product or quantity!");
@@ -177,7 +177,7 @@ const updateItemFromCart = async (req, res) => {
 
 const deleteItemFromCart = async (req, res) => {
 
-    const { productId } = req.params;
+    const { productId } = req.params;    
 
     if (!productId) {
         throw new ApiError(400, "Failed to find or delete the Product!")

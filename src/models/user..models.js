@@ -37,18 +37,16 @@ const userSchema = new Schema(
             enum: availableUserRoles,
             default: userRolesEnum.USER,
         },
-        phoneNumber: {
-            type: String,
-            match: [/^\d{10}$/, "Invalid phone number"],
-        },
-        address: {
-            addressLine: String,
-            contactNumber: String,
-            city: String,
-            state: String,
-            pincode: String,
-            country: String,
-        },
+        addresses: [
+            {
+                addressLine: String,
+                city: String,
+                state: String,
+                pincode: String,
+                country: String,
+                phone: String,
+            }
+        ],
         sellerInfo: {
             type: {
                 storeName: {
@@ -58,15 +56,12 @@ const userSchema = new Schema(
                 },
                 storeAddress: {
                     addressLine: String,
+                    contactNumber: String,
                     city: String,
                     state: String,
                     pincode: String,
                     country: String,
                     addressProof: String,
-                },
-                isVerified: {
-                    type: Boolean,
-                    default: false,
                 },
             },
             default: undefined
