@@ -59,7 +59,6 @@ const registerUser = async (req, res) => {
             email,
             password,
             role,
-            // phoneNumber,
             isEmailVerified: false,
         })
 
@@ -101,7 +100,8 @@ const registerUser = async (req, res) => {
             );
     } catch (error) {
         console.error(error);
-        throw new ApiError(500, "Registration Failed!");
+        // throw new ApiError(500, "Registration Failed!");
+        throw error;
     }
 }
 
@@ -133,14 +133,14 @@ const loginUser = async (req, res) => {
 
         // User exist check
         if (!user) {
-            throw new ApiError("User is not registered, Please first do registration!")
+            throw new ApiError(404, "User does not exists!")
         }
 
         // Password check
         const isPasswordMatching = await user.isPasswordCorrect(password);
 
         if (!isPasswordMatching) {
-            throw new ApiError("402", "Email or  Password is incorrent!")
+            throw new ApiError(401, "Email or Password is incorrect!")
         }
 
         // access and refresh Token
@@ -173,7 +173,8 @@ const loginUser = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        throw new ApiError(500, "Login Failed")
+        // throw new ApiError(500, "Login Failed")
+        throw error;
     }
 }
 
@@ -560,7 +561,7 @@ const forgetPasswordRequest = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-        throw new ApiError(401, "User does not exists");
+        throw new ApiError(404, "User does not exists");
     }
 
     const { unHashedToken, hashedToken, tokenExpiry }
@@ -578,7 +579,7 @@ const forgetPasswordRequest = async (req, res) => {
         mailgenContent: forgotPasswordEmailService(
             user.firstName,
             user.lastName,
-            `${req.protocol}://${req.get("host")}/${process.env.FORGOT_PASS_URL}/${unHashedToken}`
+            `${process.env.FORGOT_PASS_URL}/reset-password/${unHashedToken}`
         )
     });
 
@@ -589,7 +590,7 @@ const forgetPasswordRequest = async (req, res) => {
             new ApiResponse(
                 200,
                 {},
-                "Password resent mail is send to your Email!"
+                "Password reset mail is sent to your Email!"
             )
         )
 }
@@ -610,7 +611,7 @@ const resetForgetPassword = async (req, res) => {
     });
 
     if (!user) {
-        throw new ApiError("Invalid or Token is Expired!!");
+        throw new ApiError(401, "Invalid or Token is Expired!!");
     }
 
     user.forgetPasswordToken = undefined;
@@ -645,5 +646,5 @@ export {
     userChangeCurrentPassword,
     forgetPasswordRequest,
     resetForgetPassword,
-    
+
 }
