@@ -12,7 +12,7 @@ const addProduct = async (req, res) => {
         const { name, desc, price, stock, category } = req.body;
 
         console.log(req.body);
-        
+
 
         if (!availableProductCategory.includes(category)) {
             throw new ApiError(400, "Invalid Product Category!");
@@ -59,57 +59,65 @@ const addProduct = async (req, res) => {
 }
 
 const updateProduct = async (req, res) => {
-
     try {
-
         const { productId } = req.params;
         const { name, desc, stock } = req.body;
 
-        const stk = Number(stock);
         const updateFields = {};
 
+        // Name update
         if (name) updateFields.name = name;
+
+        // Description update
         if (desc) updateFields.description = desc;
 
-        if (stk && stk > 0) {
-            updateFields.stoke = stk;
-        } else {
-            throw new ApiError("Product Quantity Invalid");
+        // Stock update
+        if (stock !== undefined) {
+            const stk = Number(stock);
+
+            if (isNaN(stk) || stk < 0) {
+                throw new ApiError(400, "Invalid stock value");
+            }
+
+            updateFields.stock = stk; // ✅ FIXED TYPO
         }
 
+        // Prevent empty update
         if (Object.keys(updateFields).length === 0) {
             throw new ApiError(400, "No fields provided for update");
         }
 
-        const product = await Product.findOneAndUpdate({
-            _id: productId,
-            addedBy: req.user?._id,
-        },
+        // Update product
+        const product = await Product.findOneAndUpdate(
+            {
+                _id: productId,
+                addedBy: req.user?._id,
+            },
             { $set: updateFields },
-            { returnDocument: 'after' }
-        )
+            { new: true }
+        );
 
         if (!product) {
-            throw new ApiError(404, "Product not found or unauthorized!")
+            throw new ApiError(404, "Product not found or unauthorized!");
         }
 
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    { product },
-                    "Product Updated Successfully!"
-                )
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                { product },
+                "Product updated successfully!"
             )
+        );
+
     } catch (error) {
-        console.error("Error: ", error);
-        throw new ApiError(400, "Failed to Update Product!");
+        console.error("Update Product Error:", error);
 
+        throw new ApiError(
+            error.statusCode || 500,
+            error.message || "Failed to update product"
+        );
     }
-
-
-}
+};
 
 const removeProduct = async (req, res) => {
 
@@ -207,7 +215,8 @@ const getProductById = async (req, res) => {
 const getMyProducts = async (req, res) => {
 
     const products = await Product.find({
-        addedBy: req.user._id
+        addedBy: req.user._id,
+        isActive: true
     });
 
     return res.status(200).json(
