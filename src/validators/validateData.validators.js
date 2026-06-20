@@ -6,16 +6,18 @@ const userRegistrationValidation = () => {
     return [
         body("email")
             .trim()
-            .normalizeEmail()
             .notEmpty()
             .withMessage("Email is Required!")
+            .bail()
             .isEmail()
-            .withMessage("Invalid Email Format"),
+            .withMessage("Invalid Email Format")
+            .normalizeEmail(),
 
         body("password")
             .trim()
             .notEmpty()
             .withMessage("Password is Required!")
+            .bail()
             .isLength({ min: 6 })
             .withMessage("Password must be at least 6 characters long"),
 
@@ -28,13 +30,6 @@ const userRegistrationValidation = () => {
             .trim()
             .notEmpty()
             .withMessage("Last Name is Required!"),
-
-        // body("phoneNumber")
-        //     .trim()
-        //     .notEmpty()
-        //     .withMessage("Phone Number is Required!")
-        //     .isMobilePhone("en-IN")
-        //     .withMessage("Invalid Number")
     ]
 }
 
@@ -43,15 +38,17 @@ const userLoginValidation = () => {
 
         body("email")
             .trim()
-            .normalizeEmail()
+            .notEmpty()
+            .withMessage("Email is Required")
+            .bail()
             .isEmail()
             .withMessage("Invalid Email Format")
-            .notEmpty()
-            .withMessage("Email is Required1"),
+            .normalizeEmail(),
 
         body("password")
             .trim()
-            .notEmpty("Password is Required!")
+            .notEmpty()
+            .withMessage("Password is Required!")
 
     ]
 }
