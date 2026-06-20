@@ -14,6 +14,13 @@ const orderSchema = new Schema(
                     type: Schema.Types.ObjectId,
                     ref: "Product",
                 },
+
+                sellerId: {
+                    type: Schema.Types.ObjectId,
+                    ref: "User",
+                    required: true,
+                },
+
                 name: {
                     type: String,
                     required: true,
@@ -27,18 +34,24 @@ const orderSchema = new Schema(
                 quantity: {
                     type: Number,
                     required: true,
-                    min: 1,
+                },
+
+                orderStatus: {
+                    type: String,
+                    enum: [
+                        "pending",
+                        "confirmed",
+                        "shipped",
+                        "delivered",
+                        "cancelled"
+                    ],
+                    default: "pending",
                 }
             }
         ],
         totalAmount: {
             type: Number,
             required: true,
-        },
-        orderStatus: {
-            type: String,
-            enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
-            default: "pending",
         },
         paymentStatus: {
             type: String,
