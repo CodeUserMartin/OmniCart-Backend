@@ -6,6 +6,7 @@ import { Product } from "../models/product.models.js";
 import { Notification } from "../models/notification.models.js";
 import { availableOrderStatus, orderStatusEnum } from "../constants/orderStatus.constants.js";
 import { Cart } from "../models/cart.models.js";
+import { userRolesEnum } from "../constants/userRoles.constants.js";
 
 
 // Getting all the orders for a specific user (All Order, based on Category)
@@ -35,23 +36,26 @@ const getOrders = async (req, res) => {
     }
 
     // Checking if the user has any orders
-    const orders = await Order.find({userId: user._id})
-    .populate("items.productId");
+    const orders = await Order.find({ userId: user._id })
+        .populate("items.productId");
 
-    if (!orders) {
-        throw new ApiError(404, "Orders not found!");
+    if (orders.length === 0) {
+        throw new ApiError(404, "No orders found!");
     }
 
-   let items = orders.flatMap(order => order.items);
+    let items = orders.flatMap(order => order.items);
 
     if (category) {
         items = items.filter(
-            item => item.productId.category === category
+            item =>
+                item.productId &&
+                item.productId.category === category
         )
     }
 
     // Formatted Order Data
     const finalOrder = items.map(item => ({
+        itemId: item._id,
         productId: item.productId._id,
         img: item.productId.images,
         name: item.productId.name,
@@ -141,9 +145,13 @@ const checkoutCart = async (req, res) => {
 
         orderItems.push({
             productId: item.productId._id,
+            sellerId: item.productId.addedBy,
+
             name: item.productId.name,
             price: item.productId.price,
             quantity: item.quantity,
+
+            orderStatus: "pending"
         })
 
         // reduce the stock of the product
@@ -258,7 +266,7 @@ const buyProduct = async (req, res) => {
 
 }
 
-// Updating an order status
+// Updating an order status // OLD
 const updateOrderStatus = async (req, res) => {
 
     const { orderId } = req.params;
@@ -330,63 +338,696 @@ const updateOrderStatus = async (req, res) => {
         );
 };
 
+// Order status - pending
+const getSellerPendingOrders = async (req, res) => {
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can access this resource!"
+        );
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id,
+        "items.orderStatus": orderStatusEnum.PENDING,
+    }).populate("items.productId");
+
+    const pendingOrders = [];
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() === req.user._id.toString() &&
+                item.orderStatus === orderStatusEnum.PENDING
+            ) {
+
+                pendingOrders.push({
+                    orderId: order._id,
+                    itemId: item._id,
+
+                    productId: item.productId?._id,
+                    productName: item.name,
+                    productImage: item.productId?.images?.[0],
+
+                    quantity: item.quantity,
+                    price: item.price,
+
+                    customerId: order.userId,
+
+                    status: item.orderStatus,
+
+                    createdAt: order.createdAt,
+                });
+            }
+        });
+
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { pendingOrders },
+            "Pending Orders fetched successfully!"
+        )
+    );
+};
+
+// Accept order
+const acceptOrder = async (req, res) => {
+
+    const { itemId } = req.params;
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can accept orders!"
+        );
+    }
+
+    const order = await Order.findOne({
+        "items._id": itemId
+    });
+
+    if (!order) {
+        throw new ApiError(
+            404,
+            "Order item not found!"
+        );
+    }
+
+    const item = order.items.id(itemId);
+
+    if (!item) {
+        throw new ApiError(
+            404,
+            "Order item not found!"
+        );
+    }
+
+    if (
+        item.sellerId.toString() !==
+        req.user._id.toString()
+    ) {
+        throw new ApiError(
+            403,
+            "Unauthorized action!"
+        );
+    }
+
+    if (
+        item.orderStatus !==
+        orderStatusEnum.PENDING
+    ) {
+        throw new ApiError(
+            400,
+            "Only pending orders can be accepted!"
+        );
+    }
+
+    item.orderStatus =
+        orderStatusEnum.CONFIRMED;
+
+    await order.save();
+
+    await Notification.create({
+        userId: order.userId,
+        title: "Order Confirmed",
+        message: `${item.name} has been confirmed by the seller.`,
+        referenceId: order._id,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { item },
+            "Order accepted successfully!"
+        )
+    );
+};
+
+// order status - confirm
+const getSellerConfirmOrders = async (req, res) => {
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can access this resource!"
+        );
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id,
+        "items.orderStatus": orderStatusEnum.CONFIRMED,
+    }).populate("items.productId");
+
+    const ConfirmOrders = [];
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() === req.user._id.toString() &&
+                item.orderStatus === orderStatusEnum.CONFIRMED
+
+            ) {
+
+                ConfirmOrders.push({
+                    orderId: order._id,
+                    itemId: item._id,
+
+                    productId: item.productId?._id,
+                    productName: item.name,
+                    productImage: item.productId?.images?.[0],
+
+                    quantity: item.quantity,
+                    price: item.price,
+
+                    customerId: order.userId,
+
+                    status: item.orderStatus,
+
+                    createdAt: order.createdAt,
+                });
+            }
+        });
+
+    });
+
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { ConfirmOrders },
+            "Confirm Orders fetched successfully!"
+        )
+    );
+};
+
+
+// Order status - shipped
+const shipOrder = async (req, res) => {
+
+
+    const { itemId } = req.params;
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can ship orders!"
+        );
+    }
+
+    const order = await Order.findOne({
+        "items._id": itemId
+    });
+
+    if (!order) {
+        throw new ApiError(
+            404,
+            "Order item not found!"
+        );
+    }
+
+    const item = order.items.id(itemId);
+
+    if (!item) {
+        throw new ApiError(
+            404,
+            "Order item not found!"
+        );
+    }
+
+    if (
+        item.sellerId.toString() !==
+        req.user._id.toString()
+    ) {
+        throw new ApiError(
+            403,
+            "Unauthorized action!"
+        );
+    }
+
+    if (
+        item.orderStatus !== orderStatusEnum.CONFIRMED
+    ) {
+        throw new ApiError(
+            400,
+            "Only confirmed orders can be shipped!"
+        );
+    }
+
+    item.orderStatus = orderStatusEnum.SHIPPED;
+
+    await order.save();
+
+    await Notification.create({
+        userId: order.userId,
+        title: "Order Shipped",
+        message: `${item.name} has been shipped and is on the way.`,
+        referenceId: order._id,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { item },
+            "Order shipped successfully!"
+        )
+    );
+
+
+};
+
+
+// Order status - Delivered
+const deliverOrder = async (req, res) => {
+
+    const { itemId } = req.params;
+    const userId = req.user._id;
+
+    const order = await Order.findOne({
+        "items._id": itemId,
+        userId: userId
+    });
+
+    if (!order) {
+        throw new ApiError(404, "Order item not found!");
+    }
+
+    const item = order.items.id(itemId);
+
+    if (!item) {
+        throw new ApiError(404, "Order item not found!");
+    }
+
+    // 🚨 REMOVE SELLER CHECK (important)
+
+    if (item.orderStatus !== orderStatusEnum.SHIPPED) {
+        throw new ApiError(
+            400,
+            "Only shipped orders can be marked as delivered!"
+        );
+    }
+
+    item.orderStatus = orderStatusEnum.DELIVERED;
+
+    await order.save();
+
+    await Notification.create({
+        userId: order.userId,
+        title: "Order Delivered",
+        message: `${item.name} was marked as delivered.`,
+        referenceId: order._id,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { item },
+            "Order marked as delivered successfully!"
+        )
+    );
+};
+
+
+// Get Shipped Orders
+const getSellerShippedOrders = async (req, res) => {
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can access this resource!"
+        );
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id,
+        "items.orderStatus": orderStatusEnum.SHIPPED,
+    }).populate("items.productId");
+
+    const shippedOrders = [];
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() === req.user._id.toString() &&
+                item.orderStatus === orderStatusEnum.SHIPPED
+            ) {
+
+                shippedOrders.push({
+                    orderId: order._id,
+                    itemId: item._id,
+
+                    productId: item.productId?._id,
+                    productName: item.name,
+                    productImage: item.productId?.images?.[0],
+
+                    quantity: item.quantity,
+                    price: item.price,
+
+                    customerId: order.userId,
+
+                    status: item.orderStatus,
+
+                    createdAt: order.createdAt,
+                });
+            }
+        });
+
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { shippedOrders },
+            "Shipped orders fetched successfully!"
+        )
+    );
+
+
+};
+
+// Get Delivered Orders
+const getSellerDeliveredOrders = async (req, res) => {
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can access this resource!"
+        );
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id,
+        "items.orderStatus": orderStatusEnum.DELIVERED,
+    }).populate("items.productId");
+
+    const deliveredOrders = [];
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() === req.user._id.toString() &&
+                item.orderStatus === orderStatusEnum.DELIVERED
+            ) {
+
+                deliveredOrders.push({
+                    orderId: order._id,
+                    itemId: item._id,
+
+                    productId: item.productId?._id,
+                    productName: item.name,
+                    productImage: item.productId?.images?.[0],
+
+                    quantity: item.quantity,
+                    price: item.price,
+
+                    customerId: order.userId,
+
+                    status: item.orderStatus,
+
+                    createdAt: order.createdAt,
+                });
+            }
+        });
+
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { deliveredOrders },
+            "Delivered orders fetched successfully!"
+        )
+    );
+
+
+};
+
+
 // Cancelling an order
 const cancelOrder = async (req, res) => {
 
     const userId = req.user._id;
-    const { orderId } = req.params;
+    const { itemId } = req.params;
 
-    if (!orderId) {
-        throw new ApiError(400, "Order Id is required!");
+    if (!itemId) {
+        throw new ApiError(400, "Item Id is required!");
     }
 
-    const order = await Order.findOne({ _id: orderId, userId });
+    // Find order containing this item and belongs to user
+    const order = await Order.findOne({
+        "items._id": itemId,
+        userId: userId
+    });
 
     if (!order) {
         throw new ApiError(404, "Order not found!");
     }
 
-    if (order.orderStatus === "delivered") {
-        throw new ApiError(400, "Order cannot be cancelled as it is already delivered!");
+    const item = order.items.id(itemId);
+
+    if (!item) {
+        throw new ApiError(404, "Order item not found!");
     }
 
-    if (order.orderStatus === "cancelled") {
+    // Prevent invalid cancellations
+    if (item.orderStatus === orderStatusEnum.SHIPPED) {
+        throw new ApiError(400, "Cannot cancel after order is shipped!");
+    }
+
+    if (item.orderStatus === orderStatusEnum.DELIVERED) {
+        throw new ApiError(400, "Cannot cancel after order is delivered!");
+    }
+
+    if (item.orderStatus === orderStatusEnum.CANCELLED) {
         throw new ApiError(400, "Order is already cancelled!");
     }
 
-    order.orderStatus = "cancelled";
+    // Update status
+    item.orderStatus = orderStatusEnum.CANCELLED;
+
     await order.save();
 
-    // Restock the products in the order
-    for (const item of order.items) {
-        const product = await Product.findById(item.productId);
+    // OPTIONAL: Restock products
+    for (const i of order.items) {
+        const product = await Product.findById(i.productId);
 
         if (product) {
-            product.stock += item.quantity;
+            product.stock += i.quantity;
             await product.save();
         }
     }
 
-    // Create a notification for the user
-    await Notification.create(
-        {
-            userId,
-            title: "Order Cancelled",
-            message: `Your order for ${product.name} has been cancelled.`,
-            referenceId: order._id,
-        }
-    );
+    // OPTIONAL: Notification (fix safe message)
+    await Notification.create({
+        userId,
+        title: "Order Cancelled",
+        message: `Your order item has been cancelled successfully.`,
+        referenceId: order._id,
+    });
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                { order },
-                "Order Cancelled Successfully!"
-            )
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { item },
+            "Order cancelled successfully!"
         )
-}
+    );
+};
+
+
+// Get Cancelled Orders
+const getSellerCancelledOrders = async (req, res) => {
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(403, "Only sellers can access this resource!");
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id,
+        "items.orderStatus": orderStatusEnum.CANCELLED,
+    }).populate("items.productId");
+
+    const cancelledOrders = [];
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() === req.user._id.toString() &&
+                item.orderStatus === orderStatusEnum.CANCELLED
+            ) {
+
+                cancelledOrders.push({
+                    orderId: order._id,
+                    itemId: item._id,
+
+                    productId: item.productId?._id,
+                    productName: item.name,
+                    productImage: item.productId?.images?.[0],
+
+                    quantity: item.quantity,
+                    price: item.price,
+
+                    customerId: order.userId,
+
+                    status: item.orderStatus,
+                    createdAt: order.createdAt,
+                });
+            }
+        });
+
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { cancelledOrders },
+            "Cancelled orders fetched successfully!"
+        )
+    );
+};
+
+
+// Seller Dashboard
+const getSellerDashboard = async (req, res) => {
+
+    let totalDeliveredProducts = 0;
+    let totalCancelledProducts = 0;
+
+    if (req.user.role !== userRolesEnum.SELLER) {
+        throw new ApiError(
+            403,
+            "Only sellers can access this resource!"
+        );
+    }
+
+    const seller = await User.findById(req.user._id);
+
+    if (!seller) {
+        throw new ApiError(
+            404,
+            "Seller not found!"
+        );
+    }
+
+    const orders = await Order.find({
+        "items.sellerId": req.user._id
+    });
+
+    let pendingOrders = 0;
+    let confirmedOrders = 0;
+    let shippedOrders = 0;
+    let deliveredOrders = 0;
+    let cancelledOrders = 0;
+
+    let totalRevenue = 0;
+
+    orders.forEach((order) => {
+
+        order.items.forEach((item) => {
+
+            if (
+                item.sellerId.toString() !==
+                req.user._id.toString()
+            ) {
+                return;
+            }
+
+            switch (item.orderStatus) {
+
+                case orderStatusEnum.PENDING:
+                    pendingOrders++;
+                    break;
+
+                case orderStatusEnum.CONFIRMED:
+                    confirmedOrders++;
+                    break;
+
+                case orderStatusEnum.SHIPPED:
+                    shippedOrders++;
+                    break;
+
+                case orderStatusEnum.DELIVERED:
+
+                    deliveredOrders++;
+
+                    totalDeliveredProducts +=
+                        item.quantity;
+
+                    totalRevenue +=
+                        item.price * item.quantity;
+
+                    break;
+
+                case orderStatusEnum.CANCELLED:
+
+                    cancelledOrders++;
+
+                    totalCancelledProducts +=
+                        item.quantity;
+
+                    break;
+
+                default:
+                    break;
+            }
+
+        });
+
+    });
+
+    const totalProducts = await Product.countDocuments({
+        addedBy: req.user._id
+    });
+
+    const dashboard = {
+
+        sellerName:
+            `${seller.firstName} ${seller.lastName}`,
+
+        storeName:
+            seller.sellerInfo?.storeName || "",
+
+        storeAddress:
+            seller.sellerInfo?.storeAddress?.addressLine || "",
+
+        storeContact:
+            seller.sellerInfo?.storeAddress?.contactNumber || "",
+
+        pendingOrders,
+        confirmedOrders,
+        shippedOrders,
+        deliveredOrders,
+        cancelledOrders,
+
+        totalProducts,
+
+        totalDeliveredProducts,
+        totalCancelledProducts,
+
+        totalRevenue,
+    };
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { dashboard },
+            "Seller dashboard fetched successfully!"
+        )
+    );
+};
+
 
 
 export {
@@ -394,5 +1035,14 @@ export {
     checkoutCart,
     buyProduct,
     updateOrderStatus,
-    cancelOrder
+    cancelOrder,
+    getSellerPendingOrders,
+    acceptOrder,
+    getSellerConfirmOrders,
+    shipOrder,
+    deliverOrder,
+    getSellerDeliveredOrders,
+    getSellerShippedOrders,
+    getSellerCancelledOrders,
+    getSellerDashboard
 }
