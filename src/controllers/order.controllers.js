@@ -196,75 +196,107 @@ const checkoutCart = async (req, res) => {
 
 // Buying a product directly and creating an order
 const buyProduct = async (req, res) => {
-
+    
     const userId = req.user._id;
+
     const { productId } = req.params;
-    const { quantity } = req.body;
+
+    const {
+        quantity,
+        shippingAddress,
+        paymentMethod
+    } = req.body;
 
     const qty = Number(quantity);
 
-    // Checking if the quantity is valid
+    // Validate quantity
     if (isNaN(qty) || qty <= 0) {
-        throw new ApiError(400, "Quantity cannot be 0!");
+        throw new ApiError(
+            400,
+            "Quantity must be greater than 0!"
+        );
     }
 
+    // Validate product id
     if (!productId) {
-        throw new ApiError(400, "Product Id is required!");
+        throw new ApiError(
+            400,
+            "Product Id is required!"
+        );
     }
 
-    // Find the product in the database
+    // Find product
     const product = await Product.findById(productId);
 
     if (!product) {
-        throw new ApiError(404, "Product not found!");
+        throw new ApiError(
+            404,
+            "Product not found!"
+        );
     }
 
+    // Check stock
     if (product.stock < qty) {
-        throw new ApiError(400, "Insufficient stock!");
+        throw new ApiError(
+            400,
+            "Insufficient stock!"
+        );
     }
 
     const totalAmount = product.price * qty;
 
+    // Reduce stock
     product.stock -= qty;
+
     await product.save();
 
-    const order = await Order.create(
-        {
-            userId,
+    // Create order
+    const order = await Order.create({
 
-            items: [
-                {
-                    productId: product._id,
-                    name: product.name,
-                    price: product.price,
-                    quantity: qty,
-                }
-            ],
-            totalAmount,
-        }
-    )
+        userId,
 
-    // Create a notification for the user
-    await Notification.create(
-        {
-            userId,
-            title: "Order Placed",
-            message: `Your order for ${product.name} has been placed successfully!`,
-            referenceId: order._id,
-        }
-    )
+        items: [
+            {
+                productId: product._id,
 
-    return res
-        .status(201)
-        .json(
-            new ApiResponse(
-                201,
-                { order },
-                "Order Placed Successfully!"
-            )
+                sellerId: product.addedBy,
+
+                name: product.name,
+
+                price: product.price,
+
+                quantity: qty,
+            }
+        ],
+
+        totalAmount,
+
+        shippingAddress,
+
+        paymentMethod,
+
+        paymentStatus: "pending",
+    });
+
+    // Create notification
+    await Notification.create({
+        userId,
+
+        title: "Order Placed",
+
+        message: `Your order for ${product.name} has been placed successfully!`,
+
+        referenceId: order._id,
+    });
+
+    return res.status(201).json(
+        new ApiResponse(
+            201,
+            { order },
+            "Order placed successfully!"
         )
-
-}
+    );
+};
 
 // Updating an order status // OLD
 const updateOrderStatus = async (req, res) => {

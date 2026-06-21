@@ -1,4 +1,3 @@
-import { log } from "console";
 import { availableProductCategory } from "../constants/productCategory.constants.js";
 import { Product } from "../models/product.models.js";
 import { ApiError } from "../utils/ApiError.utils.js"
@@ -11,7 +10,7 @@ const addProduct = async (req, res) => {
     try {
         const { name, desc, price, stock, category } = req.body;
 
-        console.log(req.body);
+        // console.log(req.body);
 
 
         if (!availableProductCategory.includes(category)) {
@@ -192,7 +191,7 @@ const getProductById = async (req, res) => {
 
     const { productId } = req.params;
 
-    console.log("Product ID:", productId);
+    // console.log("Product ID:", productId);
 
     const product = await Product.findById(productId);
 

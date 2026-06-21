@@ -77,32 +77,32 @@ const registerUser = async (req, res) => {
             mailgenContent: emailVerificationMailService(
                 user.firstName,
                 user.lastName,
-                `${req.protocol}://${req.get("host")}/${process.env.VERIFY_EMAIL_URL}/${unHashedToken}`
+                `${process.env.FRONTEND_URL}/verify-email/${unHashedToken}`
             )
-        })
+    })
 
-        const createdUser = await User.findById(user._id).select(
-            "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
-        )
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+    )
 
-        if (!createdUser) {
-            throw new ApiError(500, "Something went wrong while Registration, Please Try again Later!")
-        }
-
-        // Send Back response to the Client
-        return res
-            .json(
-                new ApiResponse(
-                    200,
-                    { user: createdUser },
-                    "User Register Successfully, kindly verify your email to continue"
-                )
-            );
-    } catch (error) {
-        console.error(error);
-        // throw new ApiError(500, "Registration Failed!");
-        throw error;
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while Registration, Please Try again Later!")
     }
+
+    // Send Back response to the Client
+    return res
+        .json(
+            new ApiResponse(
+                201,
+                { user: createdUser },
+                "User Register Successfully, kindly verify your email to continue"
+            )
+        );
+} catch (error) {
+    console.error(error);
+    // throw new ApiError(500, "Registration Failed!");
+    throw error;
+}
 }
 
 const loginUser = async (req, res) => {
@@ -363,7 +363,7 @@ const userVerificationEmail = async (req, res) => {
         })
 
         if (!user) {
-            throw new ApiError(400, "Invaid or mission Token!");
+            throw new ApiError(400, "Invalid or mission Token!");
         }
 
         user.emailVerificationToken = undefined;
