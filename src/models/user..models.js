@@ -39,12 +39,44 @@ const userSchema = new Schema(
         },
         addresses: [
             {
-                addressLine: String,
-                city: String,
-                state: String,
-                pincode: String,
-                country: String,
-                phone: String,
+                addressLine: {
+                    type: String,
+                    required: true,
+                    trim: true,
+                },
+
+                city: {
+                    type: String,
+                    required: true,
+                    trim: true
+                },
+
+                state: {
+                    type: String,
+                    required: true,
+                    trim: true
+                },
+
+                pincode: {
+                    type: String,
+                    required: true,
+                    match: [/^\d{6}$/, "Pincode must be exactly 6 digits"]
+                },
+
+                country: {
+                    type: String,
+                    required: true,
+                    trim: true
+                },
+
+                phone: {
+                    type: String,
+                    required: true,
+                    match: [
+                        /^\d{10}$/,
+                        "Phone number must be exactly 10 digits"
+                    ]
+                }
             }
         ],
         sellerInfo: {
