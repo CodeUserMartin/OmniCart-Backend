@@ -79,30 +79,30 @@ const registerUser = async (req, res) => {
                 user.lastName,
                 `${process.env.FRONTEND_URL}/verify-email/${unHashedToken}`
             )
-    })
+        })
 
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
-    )
+        const createdUser = await User.findById(user._id).select(
+            "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+        )
 
-    if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while Registration, Please Try again Later!")
+        if (!createdUser) {
+            throw new ApiError(500, "Something went wrong while Registration, Please Try again Later!")
+        }
+
+        // Send Back response to the Client
+        return res
+            .json(
+                new ApiResponse(
+                    201,
+                    { user: createdUser },
+                    "User Register Successfully, kindly verify your email to continue"
+                )
+            );
+    } catch (error) {
+        console.error(error);
+        // throw new ApiError(500, "Registration Failed!");
+        throw error;
     }
-
-    // Send Back response to the Client
-    return res
-        .json(
-            new ApiResponse(
-                201,
-                { user: createdUser },
-                "User Register Successfully, kindly verify your email to continue"
-            )
-        );
-} catch (error) {
-    console.error(error);
-    // throw new ApiError(500, "Registration Failed!");
-    throw error;
-}
 }
 
 const loginUser = async (req, res) => {
@@ -193,8 +193,7 @@ const becomeSeller = async (req, res) => {
         pinCode,
     } = req.body;
 
-    // console.log(req.body)
-
+    
     // Validate Required Fields
     if (
         !storeName ||
@@ -579,7 +578,7 @@ const forgetPasswordRequest = async (req, res) => {
         mailgenContent: forgotPasswordEmailService(
             user.firstName,
             user.lastName,
-            `${process.env.FORGOT_PASS_URL}/reset-password/${unHashedToken}`
+            `${process.env.FRONTEND_URL}/reset-password/${unHashedToken}`
         )
     });
 

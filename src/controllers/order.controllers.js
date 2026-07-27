@@ -7,6 +7,7 @@ import { Notification } from "../models/notification.models.js";
 import { availableOrderStatus, orderStatusEnum } from "../constants/orderStatus.constants.js";
 import { Cart } from "../models/cart.models.js";
 import { userRolesEnum } from "../constants/userRoles.constants.js";
+import { orderConfirmedEmailService } from "../utils/MailService.utils.js";
 
 
 // Getting all the orders for a specific user (All Order, based on Category)
@@ -21,8 +22,10 @@ const getOrders = async (req, res) => {
 
     const { category } = req.query;
 
+
     // User Id
     let userId = req.user._id;
+
 
     if (!userId) {
         throw new ApiError(401, "Unauthorized Request!");
@@ -31,6 +34,7 @@ const getOrders = async (req, res) => {
     // Finding the User
     const user = await User.findById(userId);
 
+
     if (!user) {
         throw new ApiError(404, "User not found!");
     }
@@ -38,6 +42,7 @@ const getOrders = async (req, res) => {
     // Checking if the user has any orders
     const orders = await Order.find({ userId: user._id })
         .populate("items.productId");
+
 
     if (orders.length === 0) {
         throw new ApiError(404, "No orders found!");
@@ -64,6 +69,7 @@ const getOrders = async (req, res) => {
         quantity: item.quantity,
         status: item.orderStatus,
         category: item.productId.category,
+        createdAt: item.productId.createdAt
 
     }))
 
@@ -196,7 +202,7 @@ const checkoutCart = async (req, res) => {
 
 // Buying a product directly and creating an order
 const buyProduct = async (req, res) => {
-    
+
     const userId = req.user._id;
 
     const { productId } = req.params;
@@ -206,6 +212,19 @@ const buyProduct = async (req, res) => {
         shippingAddress,
         paymentMethod
     } = req.body;
+
+    const user = await User.findById(userId);
+
+    // check if address already exists (avoid duplicates)
+    const addressExists = user.addresses.some((addr) =>
+        addr.addressLine === shippingAddress.addressLine &&
+        addr.pincode === shippingAddress.pincode
+    );
+
+    if (!addressExists) {
+        user.addresses.push(shippingAddress);
+        await user.save();
+    }
 
     const qty = Number(quantity);
 
@@ -225,6 +244,8 @@ const buyProduct = async (req, res) => {
         );
     }
 
+
+
     // Find product
     const product = await Product.findById(productId);
 
@@ -241,6 +262,11 @@ const buyProduct = async (req, res) => {
             400,
             "Insufficient stock!"
         );
+    }
+
+    // Avoid Seller to purchase their own product
+    if (userId.toString() === product.addedBy.toString()) {
+        throw new ApiError(404, "Cannot place order for your own Product!")
     }
 
     const totalAmount = product.price * qty;
@@ -908,6 +934,8 @@ const getSellerCancelledOrders = async (req, res) => {
                     productName: item.name,
                     productImage: item.productId?.images?.[0],
 
+                    description: item.productId?.description || "",
+
                     quantity: item.quantity,
                     price: item.price,
 
@@ -1020,7 +1048,8 @@ const getSellerDashboard = async (req, res) => {
     });
 
     const totalProducts = await Product.countDocuments({
-        addedBy: req.user._id
+        addedBy: req.user._id,
+        isActive: true
     });
 
     const dashboard = {

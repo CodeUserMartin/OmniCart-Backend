@@ -12,7 +12,7 @@ router.route("/")
     .get(getProducts)
     .post(verifyJwt, upload.array("images", 5), addProduct)
 
-    router.route("/my-products")
+router.route("/my-products")
     .get(verifyJwt, getMyProducts)
 
 router.route("/:productId")

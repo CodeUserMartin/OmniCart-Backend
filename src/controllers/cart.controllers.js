@@ -57,6 +57,8 @@ const showCart = async (req, res) => {
         description: item.productId.description,
         price: item.productId.price,
         quantity: item.quantity,
+        isActive: item.productId.isActive,
+        stock: item.productId.stock
 
     }));
 
@@ -92,6 +94,11 @@ const addItemToCart = async (req, res) => {
 
     if (!product) {
         throw new ApiError(404, "Product does not exists!")
+    }
+
+    // Avoid Seller to purchase their own product
+    if (userId.toString() === product.addedBy.toString()) {
+        throw new ApiError(400, "You cannot add your own product to the cart!")
     }
 
     // Finding User Cart
@@ -130,15 +137,55 @@ const addItemToCart = async (req, res) => {
         )
 }
 
+const decreaseCartItem = async (req, res) => {
+    const userId = req.user._id;
+    const { productId } = req.params;
+
+    if (!productId) {
+        throw new ApiError(400, "Product Id is required!");
+    }
+
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+        throw new ApiError(404, "Cart not found!");
+    }
+
+    const cartItem = cart.items.find(
+        item => item.productId.toString() === productId
+    );
+
+    if (!cartItem) {
+        throw new ApiError(404, "Product is not in cart!");
+    }
+
+    if (cartItem.quantity > 1) {
+        cartItem.quantity -= 1;
+    } else {
+        cart.items = cart.items.filter(
+            item => item.productId.toString() !== productId
+        );
+    }
+
+    await cart.save();
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { cart },
+                "Cart quantity updated successfully!"
+            )
+        );
+};
+
 const updateItemFromCart = async (req, res) => {
 
     const { productId } = req.params;
     const { quantity } = req.body;
     const qty = Number(quantity);
-
-    // console.log("Product ID:", productId);
-    // console.log("Quantity:", quantity);
-
+    
     if (isNaN(qty) || qty < 1) {
         throw new ApiError(400, "Invalid product or quantity!");
     }
@@ -177,7 +224,7 @@ const updateItemFromCart = async (req, res) => {
 
 const deleteItemFromCart = async (req, res) => {
 
-    const { productId } = req.params;    
+    const { productId } = req.params;
 
     if (!productId) {
         throw new ApiError(400, "Failed to find or delete the Product!")
@@ -248,7 +295,8 @@ export {
     updateItemFromCart,
     deleteItemFromCart,
     clearCart,
-    showCart
+    showCart,
+    decreaseCartItem
 }
 
 

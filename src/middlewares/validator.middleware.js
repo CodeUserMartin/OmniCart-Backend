@@ -15,7 +15,7 @@ export const validateErrors = (req, res, next) => {
         [err.path]: err.msg
     })
     );
-    console.log("Error Array:", extractedErrors);
+    // console.log("Error Array:", extractedErrors);
 
     throw new ApiError(400, "Validation Failed!", extractedErrors);
 

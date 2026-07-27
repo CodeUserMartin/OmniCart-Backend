@@ -10,9 +10,6 @@ const addProduct = async (req, res) => {
     try {
         const { name, desc, price, stock, category } = req.body;
 
-        // console.log(req.body);
-
-
         if (!availableProductCategory.includes(category)) {
             throw new ApiError(400, "Invalid Product Category!");
         }
@@ -191,13 +188,16 @@ const getProductById = async (req, res) => {
 
     const { productId } = req.params;
 
-    // console.log("Product ID:", productId);
-
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+        .populate({
+            path: "addedBy",
+            select: "firstName lastName sellerInfo.storeName"
+        });
 
     if (!product) {
         throw new ApiError(401, "Product not found!");
     }
+
 
     return res
         .status(200)
