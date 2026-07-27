@@ -25,8 +25,19 @@ const sendEmail = async (options) => {
 
     });
 
+    // Gmail Service
+    // const transporter = nodemailer.createTransport({
+    //     host: "smtp.gmail.com",
+    //     port: 465,
+    //     secure: true,
+    //     auth: {
+    //         user: process.env.EMAIL_ID,
+    //         pass: process.env.EMAIL_PASSWORD,
+    //     },
+    // });
+
     const mail = {
-        from: "mail.omnicart@example.com",
+        from: process.env.EMAIL_ID,
         to: options.email,
         subject: options.subject,
         text: emailTextual,
