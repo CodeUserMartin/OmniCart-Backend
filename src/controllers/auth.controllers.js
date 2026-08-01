@@ -193,7 +193,7 @@ const becomeSeller = async (req, res) => {
         pinCode,
     } = req.body;
 
-    
+
     // Validate Required Fields
     if (
         !storeName ||
@@ -417,7 +417,7 @@ const reSentUserVerificationEmail = async (req, res) => {
             mailgenContent: emailVerificationMailService(
                 user.firstName,
                 user.lastName,
-                `${req.protocol}://${req.get("host")}/${process.env.VERIFY_EMAIL_URL}/${unHashedToken}`,
+                `${process.env.FRONTEND_URL}/api/v1/users/verify-email/${unHashedToken}`,
             )
         });
 
