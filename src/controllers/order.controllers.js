@@ -48,30 +48,26 @@ const getOrders = async (req, res) => {
         throw new ApiError(404, "No orders found!");
     }
 
-    let items = orders.flatMap(order => order.items);
-
-    if (category) {
-        items = items.filter(
-            item =>
-                item.productId &&
-                item.productId.category === category
-        )
-    }
-
     // Formatted Order Data
-    const finalOrder = items.map(item => ({
-        itemId: item._id,
-        productId: item.productId._id,
-        img: item.productId.images,
-        name: item.productId.name,
-        description: item.productId.description,
-        price: item.productId.price,
-        quantity: item.quantity,
-        status: item.orderStatus,
-        category: item.productId.category,
-        createdAt: item.productId.createdAt
-
-    }))
+    const finalOrder = orders.flatMap(order =>
+        order.items
+            .filter(item =>
+                item.productId &&
+                (!category || item.productId.category === category)
+            )
+            .map(item => ({
+                itemId: item._id,
+                productId: item.productId._id,
+                img: item.productId.images,
+                name: item.productId.name,
+                description: item.productId.description,
+                price: item.productId.price,
+                quantity: item.quantity,
+                status: item.orderStatus,
+                category: item.productId.category,
+                createdAt: order.createdAt
+            }))
+    );
 
     return res
         .status(200)
