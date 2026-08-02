@@ -1,7 +1,7 @@
 import { Product } from "../models/product.models.js"
 import { Cart } from "../models/cart.models.js"
 import { ApiError } from "../utils/ApiError.utils.js";
-import { User } from "../models/user..models.js";
+import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { availableProductCategory } from "../constants/productCategory.constants.js";
 import { populate } from "dotenv";

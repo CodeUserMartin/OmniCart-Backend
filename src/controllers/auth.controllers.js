@@ -1,6 +1,6 @@
 import { ApiResponse } from "../utils/ApiResponse.utils.js"
 import { ApiError } from "../utils/ApiError.utils.js"
-import { User } from "../models/user..models.js"
+import { User } from "../models/user.models.js"
 import { emailVerificationMailService, forgotPasswordEmailService, sendEmail } from "../utils/MailService.utils.js"
 import crypto from "crypto"
 import { userRolesEnum } from "../constants/userRoles.constants.js"

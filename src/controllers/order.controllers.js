@@ -1,7 +1,7 @@
 import { ApiError } from "../utils/ApiError.utils.js";
 import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { Order } from "../models/order.models.js";
-import { User } from "../models/user..models.js";
+import { User } from "../models/user.models.js";
 import { Product } from "../models/product.models.js";
 import { Notification } from "../models/notification.models.js";
 import { availableOrderStatus, orderStatusEnum } from "../constants/orderStatus.constants.js";
