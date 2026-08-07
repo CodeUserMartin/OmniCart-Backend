@@ -10,6 +10,7 @@ import { cloudinaryUploader } from "../utils/cloudinary.utils.js"
 const generateAccessTokenNRefreshToken = async (userId) => {
 
     try {
+
         const user = await User.findById(userId);
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
@@ -22,7 +23,6 @@ const generateAccessTokenNRefreshToken = async (userId) => {
     } catch (error) {
         throw new ApiError(500, "Something went Wrong while generating Tokens");
     }
-
 }
 
 const registerUser = async (req, res) => {
@@ -154,6 +154,7 @@ const loginUser = async (req, res) => {
         const options = {
             httpOnly: true,
             secure: true,
+            sameSite: "none",
         }
 
         // send response back to client
@@ -325,6 +326,7 @@ const logoutUser = async (req, res) => {
         const options = {
             httpOnly: true,
             secure: true,
+            sameSite: "none",
         }
 
         return res
@@ -460,6 +462,7 @@ const refreshAccessToken = async (req, res) => {
         const options = {
             httpOnly: true,
             secure: true,
+            sameSite: "none",
         }
 
         const { accessToken, refreshAccessToken: newRefreshToken }
