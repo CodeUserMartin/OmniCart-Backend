@@ -16,26 +16,25 @@ const sendEmail = async (options) => {
     const emailHtml = mailGenerator.generate(options.mailgenContent);
 
     // MailTrap Service
-    // const transporter = nodemailer.createTransport({
-    //     host: process.env.MAILTRAP_SMTP_HOST,
-    //     port: process.env.MAILTRAP_SMTP_PORT,
-    //     auth: {
-    //         user: process.env.MAILTRAP_SMTP_USERNAME,
-    //         pass: process.env.MAILTRAP_SMTP_PASSWORD,
-    //     }
-
-    // });
+    const transporter = nodemailer.createTransport({
+        host: process.env.MAILTRAP_SMTP_HOST,
+        port: process.env.MAILTRAP_SMTP_PORT,
+        auth: {
+            user: process.env.MAILTRAP_SMTP_USERNAME,
+            pass: process.env.MAILTRAP_SMTP_PASSWORD,
+        }
+    });
 
     // Gmail Service
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.EMAIL_ID,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-        logger: true,
-        debug: true,
-    });
+    // const transporter = nodemailer.createTransport({
+    //     host: "smtp.gmail.com",
+    //     port: 465,
+    //     secure: true,
+    //     auth: {
+    //         user: process.env.EMAIL_ID,
+    //         pass: process.env.EMAIL_PASSWORD,
+    //     },
+    // });
 
 
     const mail = {
