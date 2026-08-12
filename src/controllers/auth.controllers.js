@@ -191,10 +191,10 @@ const becomeSeller = async (req, res) => {
         city,
         state,
         country,
-        pinCode,
+        pincode,
     } = req.body;
 
-
+    
     // Validate Required Fields
     if (
         !storeName ||
@@ -203,7 +203,7 @@ const becomeSeller = async (req, res) => {
         !city ||
         !state ||
         !country ||
-        !pinCode
+        !pincode
     ) {
         throw new ApiError(
             400,
@@ -269,7 +269,7 @@ const becomeSeller = async (req, res) => {
             city,
             state,
             country,
-            pinCode,
+            pincode,
             addressProof:
                 uploadedAddressProof.secure_url,
         },
