@@ -18,7 +18,8 @@ const cloudinaryUploader = async (localFilePath) => {
         // Upload file on Cloudinary
         const result = await cloudinary.uploader.upload(
             localFilePath, {
-            resource_type: "auto"
+            resource_type: "auto",
+            folder: "omni-cart"
         })
 
         console.log("File Uploaded Successfully!", result.url);
